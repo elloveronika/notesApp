@@ -1,25 +1,101 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import Notes from "./components/Note";
+import noteService from "./services/notes";
 
-function App() {
+// import Note from "./components/Note";
+
+const App = () => {
+  const [notes, setNotes] = useState([]);
+  const [newNote, setNewNote] = useState("");
+  const [showAll, setShowAll] = useState(true);
+  // here we are adding a peice of state of the App component taht keeps track of which notes should be dipslayed
+  useEffect(() => {
+    noteService.getAll().then((initialNotes) => {
+      setNotes(initialNotes);
+    });
+    console.log("effect");
+  }, []);
+
+  console.log("render", notes.length, "notes");
+
+  const notesToShow = showAll ? notes : notes.filter((note) => note.important);
+  //notesToShows definition uses a ternary
+  // if showAll is false , the notesToShow variable will be assigned to a list that only contains notes that have the important property set to true
+  console.log("this is notes to showww", notesToShow.data);
+
+  const addNote = (event) => {
+    event.preventDefault();
+    // console.log("button is clicked", event.target);
+    const noteObject = {
+      content: newNote,
+      date: new Date().toISOString(),
+      important: Math.random() > 0.5,
+    };
+
+    noteService.create(noteObject).then((returnedNote) => {
+      //here we are nesting inside the notes list
+      setNotes(notes.concat(returnedNote));
+      setNewNote("");
+    });
+  };
+  const handleNoteChange = (event) => {
+    console.log("this is event", event);
+    console.log(event.target.value);
+    setNewNote(event.target.value);
+  };
+
+  useEffect(() => {
+    noteService.getAll().then((initialNotes) => {
+      setNotes(initialNotes);
+    });
+  }, []);
+
+  const toggleImportanceOf = (id) => {
+    console.log("importance of" + id + "needs to be toggled");
+    //defines the unique url for each resource based on its id
+    let url = `https://localhost:3000/notes/${id}`;
+    //the array method is used to find the note we want to modigy
+    //which then assigns it to the note variable
+    let note = notes.find((note) => note.id == id);
+    //this is a spread operator which then gets turned into a boolean
+    //we create a new object that is an exact copy of the old not
+    //apart from the important property
+    //{...note} creates a new object with copies of all the properties from the note object
+    //
+    const changedNote = { ...note, important: !note.important };
+
+    noteService.update(id, changedNote).then((returnedNote) => {
+      setNotes(notes.map((note) => (note.id !== id ? note : returnedNote)));
+    });
+
+    console.log("this is changed note", changedNote);
+  };
+  // the displayed notes (all except important) are controlled with a button.
+  // in the button we are changing the text with the ternary that when clicked changes the setState value from true to false and vice versa
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <h1>Notes</h1>
+      <div>
+        <button onClick={() => setShowAll(!showAll)}>
+          {" "}
+          show {showAll ? "important" : "all"}
+        </button>
+      </div>
+      <ul>
+        {/* {notesToShow.data.map((note) => (
+          <Notes
+            key={note.id}
+            note={note}
+            toggleImportance={() => toggleImportanceOf(note.id)}
+          />
+        ))} */}
+      </ul>
+      <form onSubmit={addNote}>
+        <input value={newNote} onChange={handleNoteChange} />
+        <button type="submit">save</button>
+      </form>
     </div>
   );
-}
-
+};
 export default App;
